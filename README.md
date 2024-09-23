@@ -1,4 +1,4 @@
-Effect Pedal
+Effect Pedal - Manuel Krahe Fernandez / 6061451
 
 i. This project will be based around the theme of system and signals. I will make one (or several) effect pedals with interactive features. This pedal will convert sound signals and modify them in a way which changes the sound (produce distortion for example). Ideally this project works so that the user can upload a music file, and would be able to put some effects on it.
 
