@@ -3,8 +3,11 @@ import sys
 import numpy as np
 import soundfile as sf
 import tkinter as tk
+from tkinter import filedialog
 from pedalboard import Pedalboard, Reverb, Chorus, LowpassFilter, PitchShift, Phaser, Clipping
 from pygame import sndarray
+
+print('Hello user! First load our favorite song in .wav format. Then tweak the effects how you like them, and start the song! Unfortunately, the effects \ndo not update in real time so to change them again you have to stop the song, change them, and then you are ready to go! It may take a couple of seconds...')
 
 
 def apply_effects():
@@ -23,11 +26,13 @@ def apply_effects():
     if clipping_gain != 0:
         board.append(Clipping(threshold_db=clipping_gain))
 
-    board.append(Phaser())
     processed_audio = board(audio_data, sample_rate)
+
+    if processed_audio.ndim == 1:
+        processed_audio = np.stack([processed_audio, processed_audio], axis=1)
+
     processed_audio = np.clip(processed_audio, -1.0, 1.0)
     processed_audio = (processed_audio * 32767).astype(np.int16)
-
 
 def play_music():
     global running, processed_audio, current_sound
@@ -86,94 +91,92 @@ def start_music():
     play_music()
 
 
-# Function to reset all sliders and effect values
 def reset_sliders():
     global reverb_room_size, chorus_depth, lowpass_cutoff, pitch_shift_semi, clipping_gain
 
-    # Reset effect values to their default settings
     reverb_room_size = 0
     chorus_depth = 0
     lowpass_cutoff = 20000
     pitch_shift_semi = 0
     clipping_gain = 0
 
-    # Reset the slider positions
     reverb_slider.set(int(reverb_room_size * 100))
     chorus_slider.set(int(chorus_depth * 100))
     lowpass_slider.set(lowpass_cutoff)
     pitch_shift_slider.set(pitch_shift_semi)
     clipping_slider.set(clipping_gain)
 
-    # Apply the reset effects and restart music if needed
     apply_effects()
 
 
-# Initialize pygame
+def load_file():
+    global audio_data, sample_rate
+    file_path = filedialog.askopenfilename(
+        title="Select a WAV file",
+        filetypes=[("WAV Files", "*.wav")]
+    )
+    if file_path:
+        audio_data, sample_rate = sf.read(file_path)
+        if audio_data.ndim == 1:
+            audio_data = np.stack([audio_data, audio_data], axis=1)
+        reset_sliders()
+
+
+
 pygame.init()
 
-# Load audio data
-starman = r"C:\Users\mckra\Downloads\python_practical\music\Its My Life ｜ Sri Lankan Version ｜ Sandaru Sathsara.wav"
-audio_data, sample_rate = sf.read(starman)
-
-# Initialize global variables
+#global variables
 reverb_room_size = 0
-chorus_depth = 0  # Default chorus depth
-lowpass_cutoff = 20000  # Default cutoff frequency for Lowpass Filter (max frequency means no filtering)
-pitch_shift_semi = 0  # Default pitch shift in semitones (no shift)
-clipping_gain = 0  # Default clipping gain (no clipping)
+chorus_depth = 0
+lowpass_cutoff = 20000
+pitch_shift_semi = 0
+clipping_gain = 0
 running = False
 processed_audio = None
-current_sound = None  # Track the currently playing sound
+current_sound = None
 
-# Tkinter window setup
+#tkinter window
 root = tk.Tk()
 root.geometry('500x800')
 root.title('Music Player')
 
-# Play button
+#buttons
+load_button = tk.Button(root, text='Load music', command=load_file, bg='#2196F3', fg='#ffffff')
+load_button.pack(pady=20)
+load_button.config(width='10', height='2')
+
 play_button = tk.Button(root, text='Play music', command=start_music, bg='#4CAF50', fg='#ffffff')
 play_button.pack(pady=20)
 play_button.config(width='10', height='2')
 
-# Stop button
 stop_button = tk.Button(root, text='Stop music', command=stop_music, bg='#f44336', fg='#ffffff')
 stop_button.pack(pady=20)
 stop_button.config(width='10', height='2')
 
-# Volume slider
 volume_slider = tk.Scale(root, from_=0, to=100, orient='horizontal', command=adjust_volume, label='Volume')
-volume_slider.set(50)  # Set the initial volume to 50%
+volume_slider.set(50)
 volume_slider.pack(pady=10)
 
-# Reverb slider (applies reverb before playing)
 reverb_slider = tk.Scale(root, from_=0, to=100, orient='horizontal', command=update_reverb, label='Reverb Room Size')
-reverb_slider.set(int(reverb_room_size * 100))  # Set initial reverb room size
+reverb_slider.set(int(reverb_room_size * 100))
 reverb_slider.pack(pady=10)
 
-# Chorus depth slider (applies chorus before playing)
 chorus_slider = tk.Scale(root, from_=0, to=100, orient='horizontal', command=update_chorus, label='Chorus Depth')
-chorus_slider.set(int(chorus_depth * 100))  # Set initial chorus depth
+chorus_slider.set(int(chorus_depth * 100))
 chorus_slider.pack(pady=10)
 
-# Lowpass filter cutoff frequency slider (applies Lowpass Filter before playing)
-lowpass_slider = tk.Scale(root, from_=20, to=20000, orient='horizontal', command=update_lowpass,
-                          label='Lowpass Cutoff (Hz)')
-lowpass_slider.set(lowpass_cutoff)  # Set initial cutoff frequency
+lowpass_slider = tk.Scale(root, from_=20, to=20000, orient='horizontal', command=update_lowpass, label='Lowpass Cutoff (Hz)')
+lowpass_slider.set(lowpass_cutoff)
 lowpass_slider.pack(pady=10)
 
-# Pitch shift slider (applies Pitch Shift before playing)
-pitch_shift_slider = tk.Scale(root, from_=-12, to=12, orient='horizontal', command=update_pitch_shift,
-                              label='Pitch Shift (semitones)')
-pitch_shift_slider.set(pitch_shift_semi)  # Set initial pitch shift
+pitch_shift_slider = tk.Scale(root, from_=-12, to=12, orient='horizontal', command=update_pitch_shift, label='Pitch Shift (semitones)')
+pitch_shift_slider.set(pitch_shift_semi)
 pitch_shift_slider.pack(pady=10)
 
-# Clipping gain slider (applies Clipping before playing)
-clipping_slider = tk.Scale(root, from_=-20, to=20, orient='horizontal', command=update_clipping,
-                           label='Clipping Gain (dB)')
-clipping_slider.set(clipping_gain)  # Set initial clipping gain
+clipping_slider = tk.Scale(root, from_=-20, to=20, orient='horizontal', command=update_clipping, label='Clipping Gain (dB)')
+clipping_slider.set(clipping_gain)
 clipping_slider.pack(pady=10)
 
-# Reset button to reset all sliders to their initial values
 reset_button = tk.Button(root, text='Reset', command=reset_sliders, bg='#FFC107', fg='#ffffff')
 reset_button.pack(pady=20)
 reset_button.config(width='10', height='2')
